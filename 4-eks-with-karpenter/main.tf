@@ -131,7 +131,7 @@ module "eks" {
 
   eks_managed_node_groups = {
 
-    karpenter-mng = {
+    core = {
       min_size     = 1
       max_size     = 3
       desired_size = 2
@@ -152,27 +152,7 @@ module "eks" {
   })
 }
 
-/* resource "aws_iam_policy" "worker_policy" {
-  name        = "worker-policy"
-  description = "Worker policy for the ALB Ingress"
 
-  policy = file("iam_policy.json")
-}
-
-resource "aws_iam_role_policy_attachment" "additional" {
-  for_each = module.eks.eks_managed_node_groups
-
-  policy_arn = aws_iam_policy.worker_policy.arn
-  role       = each.value.iam_role_name
-} */
-
-/* data "aws_eks_cluster" "cluster" {
-  name = module.eks.cluster_name
-}
-
-data "aws_eks_cluster_auth" "cluster" {
-  name = module.eks.cluster_name
-} */
 
 module "karpenter" {
   source = "terraform-aws-modules/eks/aws//modules/karpenter"
@@ -307,3 +287,8 @@ resource "kubectl_manifest" "karpenter_example_deployment" {
     helm_release.karpenter
   ]
 }
+
+
+
+
+
