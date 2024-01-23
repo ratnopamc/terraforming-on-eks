@@ -31,7 +31,7 @@ spec:
         spec:
           containers:
           - name: ray-head
-            image: public.ecr.aws/r8y1i9f8/doeks:11 # Image created using the Dockerfile attached in the folder
+            image: public.ecr.aws/r8y1i9f8/doeks:latest # Image created using the Dockerfile attached in the folder
             imagePullPolicy: Always # Ensure the image is always pulled when updated
             lifecycle:
               preStop:
@@ -74,7 +74,7 @@ spec:
         spec:
           containers:
           - name: ray-worker
-            image: public.ecr.aws/r8y1i9f8/doeks:11
+            image: public.ecr.aws/r8y1i9f8/doeks:latest
             imagePullPolicy: Always # Ensure the image is always pulled when updated
             lifecycle:
               preStop:

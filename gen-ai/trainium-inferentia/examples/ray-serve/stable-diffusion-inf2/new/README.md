@@ -19,6 +19,24 @@ This will deploy a RayServe cluster with two `inf2.48xlarge` instances. The  LLM
 
 Once the RayServe cluster is deployed, you can start sending inference requests to it. To do this, you can use the following steps:
 
+## Build the docker image for Inference script
+
+```
+#login
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/r8y1i9f8
+
+#build
+docker buildx build --platform=linux/amd64 -t doeks:latest examples/ray-serve/stable-diffusion-inf2
+
+#tag
+docker tag doeks:latest public.ecr.aws/r8y1i9f8/doeks:latest
+
+#push
+docker push public.ecr.aws/r8y1i9f8/doeks:latest
+
+```
+
+
 Get the NLB DNS Name address of the RayServe cluster. You can do this by running the following command:
 
 ```bash
