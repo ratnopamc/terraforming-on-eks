@@ -110,7 +110,7 @@ module "eks_blueprints_addons" {
   #---------------------------------------
   # Cluster Autoscaler
   #---------------------------------------
-  enable_cluster_autoscaler = false
+  enable_cluster_autoscaler = true
   cluster_autoscaler = {
     values = [templatefile("${path.module}/helm-values/cluster-autoscaler-values.yaml", {})]
   }
@@ -133,11 +133,14 @@ module "eks_blueprints_addons" {
   enable_karpenter                  = true
   karpenter_enable_spot_termination = true
   karpenter_node = {
+    iam_role_use_name_prefix = false
+    iam_role_name            = "${local.name}-karpenter-node"
     iam_role_additional_policies = {
       AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
     }
   }
   karpenter = {
+    chart_version       = "v0.33.1"
     repository_username = data.aws_ecrpublic_authorization_token.token.user_name
     repository_password = data.aws_ecrpublic_authorization_token.token.password
   }
@@ -456,7 +459,7 @@ resource "aws_launch_template" "trn1_lt" {
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size           = 200
+      volume_size           = 100
       delete_on_termination = true
       volume_type           = "gp3"
     }

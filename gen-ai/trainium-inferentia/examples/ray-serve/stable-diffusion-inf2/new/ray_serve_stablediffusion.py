@@ -41,21 +41,15 @@ class StableDiffusionV2:
     def __init__(self):
         from optimum.neuron import NeuronStableDiffusionXLPipeline
 
-        #model_dir = "sdxl_neuron/"
         compiled_model_id = "aws-neuron/stable-diffusion-xl-base-1-0-1024x1024"
-        # TODO Note
-        # To avoid saving the model locally, we can use the compiled model directly from HF
-        #self.pipe = NeuronStableDiffusionXLPipeline.from_pretrained(model_dir, device_ids=[0, 1])
+
+        # To avoid saving the model locally, we can use the pre-compiled model directly from HF
         self.pipe = NeuronStableDiffusionXLPipeline.from_pretrained(compiled_model_id, device_ids=[0, 1])
 
     async def generate(self, prompt: str):
         
-        print("sanity check: done")
         assert len(prompt), "prompt parameter cannot be empty"
-        print("Prompt: ", prompt)
         image = self.pipe(prompt).images[0]
         return image
-        #return self.pipe(prompt).images[0].tobytes()
-        #return BytesIO(image)
 
 entrypoint = APIIngress.bind(StableDiffusionV2.bind())

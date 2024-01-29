@@ -16,6 +16,7 @@ module "eks" {
   subnet_ids = compact([for subnet_id, cidr_block in zipmap(module.vpc.private_subnets, module.vpc.private_subnets_cidr_blocks) :
   substr(cidr_block, 0, 4) == "100." ? subnet_id : null])
 
+
   manage_aws_auth_configmap = true
   aws_auth_roles = [
     # We need to add in the Karpenter node IAM role for nodes launched by Karpenter
@@ -90,7 +91,7 @@ module "eks" {
       xvda = {
         device_name = "/dev/xvda"
         ebs = {
-          volume_size = 200
+          volume_size = 100
           volume_type = "gp3"
         }
       }
@@ -120,7 +121,6 @@ module "eks" {
       labels = {
         WorkerType    = "ON_DEMAND"
         NodeGroupType = "core"
-        workload = "rayhead"
       }
 
       tags = merge(local.tags, {
@@ -130,14 +130,13 @@ module "eks" {
     }
 
     # Trainium node group creation can take upto 6 mins
-/*     trn1-32xl-ng1 = {
+    trn1-32xl-ng1 = {
       name        = "trn1-32xl-ng1"
       description = "Tran1 32xlarge node group for hosting ML workloads"
       # The code filters the private subnets based on their CIDR blocks and selects the subnet ID if the CIDR block starts with "100." Otherwise, it assigns a null value.
       # The element(compact([...]), 0) expression ensures that only the first non-null value is included in the resulting list of subnet IDs.
       subnet_ids = [element(compact([for subnet_id, cidr_block in zipmap(module.vpc.private_subnets, module.vpc.private_subnets_cidr_blocks) :
-        substr(cidr_block, 0, 4) == "100." ? subnet_id : null]), 0)
-      ]
+      substr(cidr_block, 0, 4) == "100." ? subnet_id : null]), 0)]
 
       # aws ssm get-parameters --names /aws/service/eks/optimized-ami/1.27/amazon-linux-2-gpu/recommended/image_id --region us-west-2
       # ami_id   = "ami-0e0deb7ae582f6fe9" # Use this to pass custom AMI ID and ignore ami_type
@@ -177,9 +176,9 @@ module "eks" {
         echo "Bootstrap complete. Ready to Go!"
       EOT
 
-      min_size     = 0
-      max_size     = 2
-      desired_size = 1
+      min_size     = var.trn1_32xl_min_size
+      max_size     = 4
+      desired_size = var.trn1_32xl_desired_size
 
       # EFA Network Interfaces configuration for Trn1.32xlarge
       network_interfaces = [
@@ -272,7 +271,7 @@ module "eks" {
         Name                     = "trn1-32xl-ng1",
         "karpenter.sh/discovery" = local.name
       })
-    } */
+    }
     #--------------------------------------------------
     # Trainium node group for Trn1n.32xlarge
     #--------------------------------------------------
@@ -323,9 +322,9 @@ module "eks" {
         echo "Bootstrap complete. Ready to Go!"
       EOT
 
-      min_size     = 0
-      max_size     = 1
-      desired_size = 0
+      min_size     = var.trn1n_32xl_min_size
+      max_size     = 2
+      desired_size = var.trn1n_32xl_desired_size
 
       # EFA Network Interfaces configuration for Trn1.32xlarge
       network_interfaces = [
@@ -467,7 +466,7 @@ module "eks" {
 
       labels = {
         instance-type = "trn1n-32xl"
-        //provisioner   = "cluster-autoscaler"
+        provisioner   = "cluster-autoscaler"
       }
 
       taints = [
@@ -499,7 +498,7 @@ module "eks" {
       # aws ssm get-parameters --names /aws/service/eks/optimized-ami/1.27/amazon-linux-2-gpu/recommended/image_id --region us-west-2
       # ami_id   = "ami-0e0deb7ae582f6fe9" # Use this to pass custom AMI ID and ignore ami_type
       ami_type       = "AL2_x86_64_GPU"
-      //capacity_type  = "SPOT"
+      capacity_type  = "ON_DEMAND"
       instance_types = ["inf2.24xlarge"]
 
       pre_bootstrap_user_data = <<-EOT
@@ -508,13 +507,13 @@ module "eks" {
         export PATH=/opt/aws/neuron/bin:$PATH
       EOT
 
-      min_size     = 0
+      min_size     = var.inf2_24xl_min_size
       max_size     = 2
-      desired_size = 0
+      desired_size = var.inf2_24xl_desired_size
 
       labels = {
         instance-type = "inf2"
-        //provisioner   = "cluster-autoscaler"
+        provisioner   = "cluster-autoscaler"
       }
 
       taints = [
@@ -547,7 +546,7 @@ module "eks" {
       # aws ssm get-parameters --names /aws/service/eks/optimized-ami/1.27/amazon-linux-2-gpu/recommended/image_id --region us-west-2
       # ami_id   = "ami-0e0deb7ae582f6fe9" # Use this to pass custom AMI ID and ignore ami_type
       ami_type       = "AL2_x86_64_GPU"
-      //capacity_type  = "SPOT"
+      capacity_type  = "SPOT"
       instance_types = ["inf2.48xlarge"]
 
       pre_bootstrap_user_data = <<-EOT
@@ -556,24 +555,24 @@ module "eks" {
         export PATH=/opt/aws/neuron/bin:$PATH
       EOT
 
-      min_size     = 0
-      max_size     = 1
-      desired_size = 1
+      min_size     = var.inf2_48xl_min_size
+      max_size     = 2
+      desired_size = var.inf2_48xl_desired_size
 
       labels = {
         instance-type = "inf2-48xl"
-        //provisioner   = "cluster-autoscaler"
+        provisioner   = "cluster-autoscaler"
       }
 
       taints = [
         {
-          key    = "aws.amazon.com/neuroncore",
-          value  = "true",
+          key    = "aws.amazon.com/neuron",
+          value  = true,
           effect = "NO_SCHEDULE"
         },
         {
-          key    = "aws.amazon.com/neuron",
-          value  = "true",
+          key    = "aws.amazon.com/neuroncore",
+          value  = true,
           effect = "NO_SCHEDULE"
         },
       ]

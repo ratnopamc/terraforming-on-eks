@@ -1,39 +1,44 @@
 ---
-apiVersion: karpenter.sh/v1alpha5
-kind: Provisioner
+apiVersion: karpenter.sh/v1beta1
+kind: NodePool
 metadata:
   name: default
 spec:
-  providerRef:
-    name: default
-  requirements:
-    - key: "topology.kubernetes.io/zone"
-      operator: In
-      values: [${azs}d]
-    - key: "karpenter.k8s.aws/instance-category"
-      operator: In
-      values: ["c", "m", "r"]
-    - key: "karpenter.k8s.aws/instance-size"
-      operator: In
-      values: ["xlarge", "2xlarge", "4xlarge", "8xlarge", "16xlarge"]
-    - key: "kubernetes.io/arch"
-      operator: In
-      values: ["amd64"]
-    - key: "karpenter.sh/capacity-type"
-      operator: In
-      values: ["spot", "on-demand"]
-  labels:
-    provisioner: default
-    workload: rayhead
+  template:
+    metadata:
+      labels:
+        provisioner: default
+        workload: rayhead
+    spec:  
+      nodeClassRef:
+        name: default
+      requirements:
+        - key: "topology.kubernetes.io/zone"
+          operator: In
+          values: [${azs}d]
+        - key: "karpenter.k8s.aws/instance-category"
+          operator: In
+          values: ["c", "m", "r"]
+        - key: "karpenter.k8s.aws/instance-size"
+          operator: In
+          values: ["xlarge", "2xlarge", "4xlarge", "8xlarge", "16xlarge"]
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["spot", "on-demand"]
   limits:
-    resources:
-      cpu: 1000
-      memory: 20000Gi
+    cpu: 1000
+    memory: 20000Gi
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 120s
   #ttlSecondsAfterEmpty: 120 # optional, but never scales down if not set
 
 ---
-apiVersion: karpenter.k8s.aws/v1alpha1
-kind: AWSNodeTemplate
+apiVersion: karpenter.k8s.aws/v1beta1
+kind: EC2NodeClass
 metadata:
   name: default
 spec:
@@ -44,10 +49,12 @@ spec:
         volumeSize: 100Gi
         volumeType: gp3
         encrypted: true
-  subnetSelector:
-    Name: ${eks_cluster_id}-private*
-  securityGroupSelector:
-    Name: ${eks_cluster_id}-node*
+  role: "${eks_cluster_id}-karpenter-node"      
+  subnetSelectorTerms:
+    - tags:
+        Name: ${eks_cluster_id}-private*
+  securityGroupSelectorTerms:
+    - name: ${eks_cluster_id}-node*
   tags:
     managed-by: "karpenter"
     intent: "apps"

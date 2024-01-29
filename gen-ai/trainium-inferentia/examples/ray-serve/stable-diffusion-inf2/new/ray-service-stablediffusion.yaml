@@ -31,7 +31,7 @@ spec:
         spec:
           containers:
           - name: ray-head
-            image: public.ecr.aws/r8y1i9f8/doeks:latest # Image created using the Dockerfile attached in the folder
+            image: public.ecr.aws/r8y1i9f8/ray-serve-stable-diffusion:latest # Image created using the Dockerfile attached in the folder
             imagePullPolicy: Always # Ensure the image is always pulled when updated
             lifecycle:
               preStop:
@@ -57,9 +57,8 @@ spec:
                 cpu: "2"
                 memory: "8G"
           nodeSelector:
-            #provisioner: default
-            workload: "rayhead"
-            #NodeGroupType: "core"
+            provisioner: default
+            workload: rayhead
           volumes:
           - name: ray-logs
             emptyDir: {}
@@ -74,7 +73,7 @@ spec:
         spec:
           containers:
           - name: ray-worker
-            image: public.ecr.aws/r8y1i9f8/doeks:latest
+            image: public.ecr.aws/r8y1i9f8/ray-serve-stable-diffusion:latest # Image created using the Dockerfile attached in the folder
             imagePullPolicy: Always # Ensure the image is always pulled when updated
             lifecycle:
               preStop:
@@ -90,14 +89,18 @@ spec:
                 memory: "360G"
                 aws.amazon.com/neuron: "6"
           nodeSelector:
-            #karpenter.sh/provisioner-name: inferentia-inf2
-            instance-type: "inf2-24xl"
+            provisioner: inferentia-inf2
+            #workload: "rayworker"
           tolerations:
           - key: "aws.amazon.com/neuroncore"
             value: "true"
             effect: "NoSchedule"
           - key: "aws.amazon.com/neuron"
             value: "true"
+            effect: "NoSchedule"
+          - key: hub.jupyter.org/dedicated # According to optimization docs https://z2jh.jupyter.org/en/latest/administrator/optimization.html
+            operator: "Equal"
+            value: "user"
             effect: "NoSchedule"
 
 ---
